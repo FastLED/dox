@@ -63,6 +63,10 @@ Section links to other Markdown documents open the same release tag on GitHub;
 local heading links use GitHub-style IDs. This avoids Doxygen leaving literal
 `file.md#section` URLs in the generated HTML.
 
+Selected subdirectory READMEs render as standalone guides. The input filter
+normalizes Setext or missing page titles for Doxygen filename linking and
+resolves selected document paths explicitly. Release source files stay unchanged.
+
 ## Schedule maintenance
 
 The successful daily check records a small status snapshot on

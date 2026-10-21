@@ -143,6 +143,14 @@ def configure(root: Path, tag: str, manifest: Path) -> None:
         )
     )
     print("FILTER_SOURCE_FILES = NO")
+    # Inline code mentioning a Markdown filename should not auto-link to an
+    # empty file reference; explicit Markdown links still resolve to its page.
+    ignored = {p.name for p in markdown} | {
+        p.relative_to(root).as_posix() for p in markdown
+    }
+    print(
+        "AUTOLINK_IGNORE_WORDS += " + " ".join(json.dumps(p) for p in sorted(ignored))
+    )
 
 
 def filter_document(manifest: Path, document: Path) -> str:
@@ -164,6 +172,10 @@ def filter_document(manifest: Path, document: Path) -> str:
         # Doxygen can leave file.md#section as a literal, broken relative URL.
         # Keep section links on the same tagged GitHub document.
         if str(path) in selected and not (url.query or url.fragment):
+            destination = str(path)
+            if text[start - 1 : start] != "<":
+                destination = "<" + destination + ">"
+            edits.append((start, end, destination))
             continue
         if not path.exists():
             missing.add((start, end))
@@ -220,6 +232,14 @@ def filter_document(manifest: Path, document: Path) -> str:
             )
     for start, end, replacement in sorted(edits, reverse=True):
         text = text[:start] + replacement + text[end:]
+    # With GitHub heading IDs, Doxygen 1.13.2 cannot resolve filename links
+    # to Setext-titled or untitled Markdown pages. Equivalent ATX titles keep
+    # their content linkable without changing any checked-out release files.
+    lines = text.splitlines(keepends=True)
+    if len(lines) > 1 and re.fullmatch(r"=+\s*", lines[1]):
+        text = "# " + lines[0].strip() + "\n" + "".join(lines[2:])
+    elif not re.match(r"\s*#{1,6}\s", text):
+        text = "# " + document.stem + "\n\n" + text
     return text
 
 
