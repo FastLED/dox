@@ -137,6 +137,27 @@ EXCLUDE = ../src/platforms
             rendered,
         )
 
+    def test_setext_and_untitled_documents_get_linkable_page_titles(self):
+        self.write(
+            "PORTING.md", "Platform Porting Guide\n======================\n\nContent.\n"
+        )
+        self.assertTrue(
+            self.render("PORTING.md").startswith("# Platform Porting Guide\n")
+        )
+        self.write("PORTING.md", "* A community project\n")
+        self.assertTrue(self.render("PORTING.md").startswith("# PORTING\n\n"))
+
+    def test_selected_links_quote_checkout_and_filename_spaces(self):
+        spaced = self.root.with_name("release checkout")
+        self.root.rename(spaced)
+        self.root = spaced
+        self.write(
+            "README.md", "# Release\n[Guide](guide%20one.md)\n[Port](<PORTING.md>)\n"
+        )
+        rendered = self.render()
+        self.assertIn(f"[Guide](<{self.root / 'guide one.md'}>)", rendered)
+        self.assertIn(f"[Port](<{self.root / 'PORTING.md'}>)", rendered)
+
     def test_missing_links_preserve_inline_code_labels(self):
         self.write(
             "README.md",
@@ -177,7 +198,7 @@ EXCLUDE = ../src/platforms
             "https://github.com/FastLED/FastLED/blob/release%2F1/src/nested.md?plain=1#details",
             rendered,
         )
-        self.assertIn("[Root](README.md)", rendered)
+        self.assertIn(f"[Root](<{self.root / 'README.md'}>)", rendered)
         self.assertNotIn("[Nested](src/nested.md", rendered)
 
 
