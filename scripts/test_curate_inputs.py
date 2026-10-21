@@ -62,6 +62,83 @@ EXCLUDE = ../src/platforms
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(text)
 
+    def render(self, document="README.md"):
+        _, markdown = select(self.root)
+        manifest = self.root / "manifest.json"
+        manifest.write_text(
+            json.dumps(
+                {
+                    "root": str(self.root),
+                    "tag": "3.10.8",
+                    "markdown": [str(p) for p in markdown],
+                }
+            )
+        )
+        return filter_document(manifest, self.root / document)
+
+    def test_missing_release_documents_keep_labels_without_broken_links(self):
+        self.write(
+            "README.md",
+            """[FX library](src/fx/README.md)
+[LCD migration](<src/platforms/esp/32/drivers/lcd_cam/LCD_I80_vs_RGB_MIGRATION_GUIDE.md> "Guide")
+[Release notes][lcd]
+[lcd]: missing%20notes.md#status
+[lcd][] and [lcd]
+![Image][lcd]
+![Image](missing.md)
+`[Code](missing.md)`
+```
+[Code][lcd]
+```
+""",
+        )
+        rendered = self.render()
+        self.assertIn("FX library (not available in this release)", rendered)
+        self.assertIn("LCD migration (not available in this release)", rendered)
+        self.assertIn("Release notes (not available in this release)", rendered)
+        self.assertIn(
+            "lcd (not available in this release) and lcd (not available in this release)",
+            rendered,
+        )
+        self.assertIn("![Image][lcd]", rendered)
+        self.assertIn("![Image](missing.md)", rendered)
+        self.assertIn("`[Code](missing.md)`", rendered)
+        self.assertIn("[Code][lcd]", rendered)
+        self.assertNotIn("[FX library]", rendered)
+
+    def test_sources_directories_and_encoded_links_use_existing_tagged_paths(self):
+        self.write(
+            "README.md",
+            """[API](src/api.h?plain=1#L1)
+[Examples](examples/)
+[Missing](missing%20guide.md?plain=1#topic)
+[External](https://example.org/missing.md)
+[Escape](../outside.md)
+[Symlink](escape.md)
+""",
+        )
+        rendered = self.render()
+        self.assertIn(
+            "https://github.com/FastLED/FastLED/blob/3.10.8/src/api.h?plain=1#L1",
+            rendered,
+        )
+        self.assertIn(
+            "https://github.com/FastLED/FastLED/tree/3.10.8/examples", rendered
+        )
+        self.assertIn("Missing (not available in this release)", rendered)
+        self.assertIn("[External](https://example.org/missing.md)", rendered)
+        self.assertIn("[Escape](../outside.md)", rendered)
+        self.assertIn("[Symlink](escape.md)", rendered)
+
+    def test_missing_links_preserve_inline_code_labels(self):
+        self.write(
+            "README.md",
+            "[`missing.h`](missing.h) and [`Guide`][gone]\n[gone]: absent.md\n",
+        )
+        rendered = self.render()
+        self.assertIn("`missing.h` (not available in this release)", rendered)
+        self.assertIn("`Guide` (not available in this release)", rendered)
+
     def test_exact_readme_selection_preserves_api_and_excludes_junk(self):
         inputs, markdown = select(self.root)
         self.assertEqual(
