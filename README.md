@@ -26,7 +26,10 @@ pipeline. Drafts and prereleases are excluded by GitHub's latest-release API.
 
 ## Build and hosting
 
-The workflow checks out only the release tag with depth 1. It uses that release's
+The workflow checks out the exact `refs/tags/<release>` with depth 1, never a
+subsequent commit on `master`. Before downloading tools or generating documentation,
+the build verifies that `HEAD` equals the release tag's commit and fails on a
+mismatch. The verified commit is recorded in `release.json`. It uses that release's
 Doxyfile, source, examples, and stylesheet with SHA256-verified Doxygen 1.13.2
 and Graphviz. Doxygen's built-in header/footer avoid missing assets referenced
 by the upstream legacy header. The generated pages include the release number.

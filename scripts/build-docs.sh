@@ -4,6 +4,12 @@ set -euo pipefail
 : "${RELEASE_TAG:?Set RELEASE_TAG to the checked-out FastLED release}"
 : "${RELEASE_ID:?Set RELEASE_ID to the GitHub release ID}"
 source_dir=$(realpath "${1:-fastled}")
+source_sha=$(git -C "$source_dir" rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+head_sha=$(git -C "$source_dir" rev-parse --verify HEAD)
+if [ "$head_sha" != "$source_sha" ]; then
+  echo "Refusing to build: HEAD $head_sha does not match release tag $RELEASE_TAG ($source_sha)" >&2
+  exit 1
+fi
 site_dir="$(pwd)/site"
 tools_dir="$(pwd)/.build/tools"
 version=1.13.2
@@ -39,7 +45,6 @@ CONFIG
 test -s "$site_dir/index.html"
 test -s "$site_dir/search/search.js"
 
-source_sha=$(git -C "$source_dir" rev-parse HEAD)
 jq --null-input --argjson id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \
   --arg sha "$source_sha" --arg version "$version" \
   '{id: $id, tag_name: $tag, source_sha: $sha, doxygen_version: $version}' \
