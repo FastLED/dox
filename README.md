@@ -34,12 +34,17 @@ Doxyfile, source, examples, and stylesheet with SHA256-verified Doxygen 1.13.2
 and Graphviz. Doxygen's built-in header/footer avoid missing assets referenced
 by the upstream legacy header. The generated pages include the release number.
 
+The reference includes the release's API source files, root README, and local
+Markdown documents linked directly from that README. Other Markdown files are
+excluded from the navigation. Links from included documents to further Markdown
+documents open their source on GitHub at the same release tag.
+
 GitHub Pages is configured to deploy from Actions. HTML is uploaded as a Pages
 artifact with one-day retention; it is never committed to this repository.
 The deployed `release.json` records the release ID, tag, source commit, and
 Doxygen version. No personal token or cross-repository write access is needed.
 
-For a local build on Linux x86-64, install Git, curl, jq, tar, and Graphviz, then:
+For a local build on Linux x86-64, install Git, curl, jq, tar, Python 3, and Graphviz, then:
 
 ```bash
 git clone --depth 1 --branch 3.10.8 https://github.com/FastLED/FastLED.git fastled

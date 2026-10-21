@@ -12,6 +12,7 @@ if [ "$head_sha" != "$source_sha" ]; then
 fi
 site_dir="$(pwd)/site"
 tools_dir="$(pwd)/.build/tools"
+scripts_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 version=1.13.2
 checksum=f2c0a349403bc5b5ade3f501301e32b49ea31b3182666954bc398452fbc0dd1c
 mkdir -p "$tools_dir" "$site_dir"
@@ -38,6 +39,8 @@ HTML_HEADER =
 HTML_FOOTER =
 QUIET = YES
 CONFIG
+python3 "$scripts_dir/curate_inputs.py" configure "$source_dir" "$RELEASE_TAG" \
+  "$tools_dir/markdown-inputs.json" >> "$config"
 (
   cd "$source_dir/docs"
   "$doxygen" "$config"
