@@ -19,11 +19,26 @@ LINK = re.compile(
     re.MULTILINE,
 )
 CODE = re.compile(r"^ *(```|~~~).*?^ *\1[^\n]*$|`[^`\n]*`", re.MULTILINE | re.DOTALL)
+IMAGE = re.compile(r"!\[[^\]\n]*\](?:\[[^\]\n]*\]|\([^\n)]*\))?")
+INLINE = re.compile(
+    r"(?<!!)\[(?P<label>[^\]\n]*)\]\(\s*(?:<(?P<angle>[^>\n]+)>|"
+    r'(?P<target>[^\s)]+))(?:\s+["\'][^\n]*?["\'])?\s*\)'
+)
+REFERENCE = re.compile(
+    r"(?<!!)\[(?P<label>[^\]\n]+)\](?:\[(?P<reference>[^\]\n]*)\])?(?!\()"
+)
+
+
+def link_text(text: str) -> str:
+    """Hide code and images while retaining source offsets for ordinary links."""
+    for pattern in (CODE, IMAGE):
+        text = pattern.sub(lambda match: " " * len(match[0]), text)
+    return text
 
 
 def destinations(text: str) -> Iterator[tuple[int, int]]:
-    """Yield destination spans, ignoring fenced and inline code examples."""
-    masked = CODE.sub(lambda match: " " * len(match[0]), text)
+    """Yield destination spans, ignoring code examples and images."""
+    masked = link_text(text)
     body = re.sub(r"^ {0,3}\[[^\]\n]+\]:[^\n]*", "", masked, flags=re.MULTILINE)
     for match in LINK.finditer(masked):
         if match["label"] and not re.search(
@@ -38,12 +53,20 @@ def destinations(text: str) -> Iterator[tuple[int, int]]:
         yield match.span(name)
 
 
-def local_markdown(root: Path, document: Path, target: str) -> Path | None:
+def local_path(root: Path, document: Path, target: str) -> Path | None:
+    """Resolve a repository link, including missing files, without escaping root."""
     url = urlsplit(target)
     if url.scheme or url.netloc or not url.path:
         return None
     path = (document.parent / unquote(url.path)).resolve()
-    if not path.is_relative_to(root) or path.suffix.lower() not in MARKDOWN:
+    if not path.is_relative_to(root):
+        return None
+    return path
+
+
+def local_markdown(root: Path, document: Path, target: str) -> Path | None:
+    path = local_path(root, document, target)
+    if path is None or path.suffix.lower() not in MARKDOWN:
         return None
     return path if path.is_file() else None
 
@@ -129,13 +152,20 @@ def filter_document(manifest: Path, document: Path) -> str:
         return text
     root = Path(state["root"])
     selected = set(state["markdown"])
-    for start, end in reversed(list(destinations(text))):
+    masked = link_text(text)
+    edits: list[tuple[int, int, str]] = []
+    missing: set[tuple[int, int]] = set()
+    for start, end in destinations(text):
         target = text[start:end]
-        path = local_markdown(root, document, target)
+        path = local_path(root, document, target)
         if path is None or str(path) in selected:
             continue
+        if not path.exists():
+            missing.add((start, end))
+            continue
         url = urlsplit(target)
-        external = "https://github.com/FastLED/FastLED/blob/" + quote(
+        kind = "tree" if path.is_dir() else "blob"
+        external = f"https://github.com/FastLED/FastLED/{kind}/" + quote(
             state["tag"], safe=""
         )
         external += "/" + quote(path.relative_to(root).as_posix())
@@ -143,7 +173,48 @@ def filter_document(manifest: Path, document: Path) -> str:
             external += "?" + url.query
         if url.fragment:
             external += "#" + url.fragment
-        text = text[:start] + external + text[end:]
+        edits.append((start, end, external))
+
+    # A release can refer to documents that were never included in its tag.
+    # Preserve their labels rather than publishing links that cannot resolve.
+    for match in INLINE.finditer(masked):
+        span = match.span("angle" if match["angle"] is not None else "target")
+        if span in missing:
+            edits.append(
+                (
+                    *match.span(),
+                    text[slice(*match.span("label"))]
+                    + " (not available in this release)",
+                )
+            )
+    missing_references = set()
+    for match in LINK.finditer(masked):
+        if match["label"] is None:
+            continue
+        span = match.span(
+            "ref_angle" if match["ref_angle"] is not None else "reference"
+        )
+        if span in missing:
+            missing_references.add(" ".join(match["label"].split()).casefold())
+    # Mask definitions so they cannot be mistaken for shortcut reference uses.
+    body = re.sub(
+        r"^ {0,3}\[[^\]\n]+\]:[^\n]*",
+        lambda match: " " * len(match[0]),
+        masked,
+        flags=re.MULTILINE,
+    )
+    for match in REFERENCE.finditer(body):
+        label = match["reference"] or match["label"]
+        if " ".join(label.split()).casefold() in missing_references:
+            edits.append(
+                (
+                    *match.span(),
+                    text[slice(*match.span("label"))]
+                    + " (not available in this release)",
+                )
+            )
+    for start, end, replacement in sorted(edits, reverse=True):
+        text = text[:start] + replacement + text[end:]
     return text
 
 

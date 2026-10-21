@@ -39,6 +39,11 @@ Markdown documents linked directly from that README. Other Markdown files are
 excluded from the navigation. Links from included documents to further Markdown
 documents open their source on GitHub at the same release tag.
 
+For documents or examples absent from the exact release tag, the published
+reference retains the link label with “not available in this release” instead
+of a broken hyperlink. Existing source and directory links point to that same
+tag on GitHub.
+
 GitHub Pages is configured to deploy from Actions. HTML is uploaded as a Pages
 artifact with one-day retention; it is never committed to this repository.
 The deployed `release.json` records the release ID, tag, source commit, and
@@ -56,7 +61,13 @@ Migration and history cleanup are tracked in
 
 ## Schedule maintenance
 
-GitHub can disable scheduled workflows in public repositories after 60 days
-without repository activity. If the schedule is disabled, open the workflow in
+The successful daily check records a small status snapshot on
+`automation/release-checks` at most once every 30 days. This provides repository
+activity before GitHub's 60-day inactivity limit. The audit history contains
+only JSON and never triggers a documentation build or deployment. The audit job
+alone has repository write permission; release checking and building keep their
+existing permissions.
+
+If GitHub disables the schedule after a prolonged outage, open the workflow in
 Actions and choose **Enable workflow**, then run it manually. See
 [GitHub's scheduled workflow documentation](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
