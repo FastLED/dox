@@ -27,7 +27,7 @@ cat >> "$config" <<CONFIG
 
 PROJECT_NUMBER = "$RELEASE_TAG"
 OUTPUT_DIRECTORY = "$site_dir"
-HTML_OUTPUT = docs
+HTML_OUTPUT = .
 HTML_HEADER =
 HTML_FOOTER =
 QUIET = YES
@@ -36,24 +36,27 @@ CONFIG
   cd "$source_dir/docs"
   "$doxygen" "$config"
 )
-test -s "$site_dir/docs/index.html"
-test -s "$site_dir/docs/search/search.js"
+test -s "$site_dir/index.html"
+test -s "$site_dir/search/search.js"
 
 source_sha=$(git -C "$source_dir" rev-parse HEAD)
 jq --null-input --argjson id "$RELEASE_ID" --arg tag "$RELEASE_TAG" \
   --arg sha "$source_sha" --arg version "$version" \
   '{id: $id, tag_name: $tag, source_sha: $sha, doxygen_version: $version}' \
   > "$site_dir/release.json"
-cat > "$site_dir/index.html" <<'HTML'
+# Preserve the previously published landing URL while the reference lives at root.
+mkdir -p "$site_dir/docs"
+cat > "$site_dir/docs/index.html" <<'HTML'
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=docs/">
+  <script>window.location.replace('../' + window.location.search + window.location.hash);</script>
+  <meta http-equiv="refresh" content="0; url=../">
   <title>FastLED API documentation</title>
 </head>
-<body><p><a href="docs/">Open the FastLED API documentation</a></p></body>
+<body><p><a href="../">Open the FastLED API documentation</a></p></body>
 </html>
 HTML
 touch "$site_dir/.nojekyll"

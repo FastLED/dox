@@ -5,7 +5,13 @@ Release-based API documentation for [FastLED](https://github.com/FastLED/FastLED
 The daily GitHub Actions workflow checks the latest stable FastLED release and
 publishes its Doxygen documentation to GitHub Pages when a new release appears.
 
-**Site:** https://fastled.github.io/dox/ (API reference under `docs/`).
+**API reference:** https://fastled.github.io/dox/
+
+This repository publishes the FastLED library's Doxygen reference directly at
+the site root. The previous `/dox/docs/` landing URL redirects to `/dox/`.
+Other FastLED projects keep their own documentation sites; this is not a shared
+documentation hub. If that scope changes, repository names should identify the
+individual references, such as `/dox/fastled/` and `/dox/fbuild/`.
 
 ## Updates
 
