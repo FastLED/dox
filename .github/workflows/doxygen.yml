@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: FastLED/FastLED
-          ref: ${{ needs.check.outputs.tag }}
+          ref: refs/tags/${{ needs.check.outputs.tag }}
           path: fastled
           fetch-depth: 1
           persist-credentials: false
