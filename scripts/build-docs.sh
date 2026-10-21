@@ -38,6 +38,9 @@ HTML_OUTPUT = .
 HTML_HEADER =
 HTML_FOOTER =
 QUIET = YES
+# The release enables six workers; Doxygen 1.13.2 corrupts memory while
+# generating this release in parallel. Use its default serial processing.
+NUM_PROC_THREADS = 1
 CONFIG
 python3 "$scripts_dir/curate_inputs.py" configure "$source_dir" "$RELEASE_TAG" \
   "$tools_dir/markdown-inputs.json" >> "$config"
