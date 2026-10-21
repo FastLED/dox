@@ -130,6 +130,13 @@ EXCLUDE = ../src/platforms
         self.assertIn("[Escape](../outside.md)", rendered)
         self.assertIn("[Symlink](escape.md)", rendered)
 
+    def test_selected_markdown_section_links_use_the_exact_tag(self):
+        rendered = self.render()
+        self.assertIn(
+            "https://github.com/FastLED/FastLED/blob/3.10.8/guide%20one.md?view=1#topic",
+            rendered,
+        )
+
     def test_missing_links_preserve_inline_code_labels(self):
         self.write(
             "README.md",

@@ -59,6 +59,10 @@ RELEASE_TAG=3.10.8 RELEASE_ID=416153555 bash scripts/build-docs.sh
 Migration and history cleanup are tracked in
 [FastLED/FastLED#4878](https://github.com/FastLED/FastLED/issues/4878).
 
+Section links to other Markdown documents open the same release tag on GitHub;
+local heading links use GitHub-style IDs. This avoids Doxygen leaving literal
+`file.md#section` URLs in the generated HTML.
+
 ## Schedule maintenance
 
 The successful daily check records a small status snapshot on
