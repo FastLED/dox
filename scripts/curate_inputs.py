@@ -158,7 +158,12 @@ def filter_document(manifest: Path, document: Path) -> str:
     for start, end in destinations(text):
         target = text[start:end]
         path = local_path(root, document, target)
-        if path is None or str(path) in selected:
+        if path is None:
+            continue
+        url = urlsplit(target)
+        # Doxygen can leave file.md#section as a literal, broken relative URL.
+        # Keep section links on the same tagged GitHub document.
+        if str(path) in selected and not (url.query or url.fragment):
             continue
         if not path.exists():
             missing.add((start, end))

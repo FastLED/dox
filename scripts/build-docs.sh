@@ -38,6 +38,8 @@ HTML_OUTPUT = .
 HTML_HEADER =
 HTML_FOOTER =
 QUIET = YES
+# Match the README's GitHub-style links to headings on the current page.
+MARKDOWN_ID_STYLE = GITHUB
 # The release enables six workers; Doxygen 1.13.2 corrupts memory while
 # generating this release in parallel. Use its default serial processing.
 NUM_PROC_THREADS = 1
