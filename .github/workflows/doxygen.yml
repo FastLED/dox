@@ -63,7 +63,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
     environment:
@@ -88,6 +88,19 @@ jobs:
           RELEASE_TAG: ${{ needs.check.outputs.tag }}
           RELEASE_ID: ${{ needs.check.outputs.release_id }}
         run: bash scripts/build-docs.sh
+      - name: Package this publication for durable downloads
+        env:
+          GENERATION: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: python3 scripts/package_docs.py site bundle --generation "$GENERATION"
+      - name: Publish versioned documentation download
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENERATION: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh release create "docs-$GENERATION" bundle/docs.tar.gz bundle/manifest.json \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --prerelease --latest=false --title "Documentation publication $GENERATION" \
+            --notes "Documentation bundle for this publication. Discover the active publication through https://fastled.github.io/dox/publication.json."
       - name: Configure Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - name: Upload Pages artifact

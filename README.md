@@ -49,6 +49,31 @@ artifact with one-day retention; it is never committed to this repository.
 The deployed `release.json` records the release ID, tag, source commit, and
 Doxygen version. No personal token or cross-repository write access is needed.
 
+## Durable documentation downloads
+
+The active site's [publication.json](https://fastled.github.io/dox/publication.json)
+identifies a public, versioned download of that exact publication. Mirrors should
+discover downloads through this manifest rather than GitHub's latest-release API.
+Its `schema_version` is `1`; `generation` is the GitHub run ID and attempt joined
+with a hyphen. The `release` object contains `id`, `tag_name`, `source_sha`,
+`doxygen_version`, and the same `generation`. The `archive` object contains the
+public `url`, hexadecimal `sha256`, and byte `size` of `docs.tar.gz`.
+
+Each build creates a `docs-<generation>` documentation prerelease containing
+`docs.tar.gz` and `manifest.json`. These assets are uploaded before Pages deploys;
+the public site selects the generation only after deployment succeeds. Failed
+deployments therefore leave the previous publication selected. Consumers should
+verify the archive's size and SHA256 before extracting its files and directories.
+The archive includes `release.json` with the matching generation and excludes
+`publication.json` to avoid a self-referential checksum. The standalone
+`manifest.json` and deployed `publication.json` are identical.
+
+Publication assets remain available beyond the Actions artifact retention period.
+Generated HTML and archives are never committed to Git. A forced rebuild of the
+same FastLED tag creates a new generation; an unchanged daily check still skips
+building and publishing. The publish job uses repository write permission to
+create its documentation release; the release check retains read permission.
+
 For a local build on Linux x86-64, install Git, curl, jq, tar, Python 3, and Graphviz, then:
 
 ```bash
@@ -73,8 +98,8 @@ The successful daily check records a small status snapshot on
 `automation/release-checks` at most once every 30 days. This provides repository
 activity before GitHub's 60-day inactivity limit. The audit history contains
 only JSON and never triggers a documentation build or deployment. The audit job
-alone has repository write permission; release checking and building keep their
-existing permissions.
+has repository write permission, as does the separate publish job for its public
+download release. Release checking retains read permission.
 
 If GitHub disables the schedule after a prolonged outage, open the workflow in
 Actions and choose **Enable workflow**, then run it manually. See
