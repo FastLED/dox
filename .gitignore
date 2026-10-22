@@ -1,3 +1,5 @@
 .build/
 fastled/
 site/
+bundle/
+__pycache__/
